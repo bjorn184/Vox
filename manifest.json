@@ -1,7 +1,7 @@
 {
   "name": "Vox",
   "short_name": "Vox",
-  "start_url": "/",
+  "start_url": "https://bjorn184.github.io/Vox/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
