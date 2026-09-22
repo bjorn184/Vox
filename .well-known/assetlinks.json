@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.bjorn184.voxapp",
+        "sha256_cert_fingerprints": ["65:E1:2D:70:0D:99:86:99:71:B9:94:16:27:8A:6D:75:38:25:EB:38:65:9F:B7:93:6A:1E:B6:38:F1:1A:D3:8C"]
+      }
+    }]
