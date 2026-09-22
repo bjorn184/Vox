@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOX - Spraakassistent</title>
+    <!-- Tailwind CSS voor strakke styling -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between p-6">
+
+    <!-- Header -->
+    <header class="w-full max-w-md text-center py-4">
+        <h1 class="text-3xl font-extrabold tracking-wider text-cyan-400">VOX</h1>
+        
+    </header>
+
+    <!-- Main Content / Status -->
+    <main class="w-full max-w-md flex flex-col items-center justify-center my-auto space-y-8">
+        <!-- Status Indicator -->
+        <div id="status-container" class="relative flex items-center justify-center">
+            <div id="pulse-ring" class="absolute w-40 h-40 bg-cyan-500/20 rounded-full animate-ping hidden"></div>
+            <div id="mic-icon-bg" class="w-28 h-28 bg-slate-900 border-2 border-cyan-500 rounded-full flex items-center justify-center shadow-lg shadow-cyan-500/20 transition-all duration-300">
+                <svg id="mic-svg" class="w-12 h-12 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Status Text -->
+        <div class="text-center space-y-2">
+            <h2 id="status-title" class="text-xl font-semibold text-slate-200">Wachten op "Hey Vox"...</h2>
+            <p id="transcript" class="text-sm text-slate-400 italic min-h-[2rem]">Zeg "Hey Vox" gevolgd door je commando.</p>
+        </div>
+
+        <!-- Handmatige Startknop (voor browsers die autoplay/autostart blokkeren) -->
+        <button id="start-btn" class="w-full py-3 px-6 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-xl shadow-lg transition-all">
+            Activeer Continue Luisteren
+        </button>
+    </main>
+
+    <!-- Log / Geschiedenis -->
+    <footer class="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-2xl p-4 max-h-40 overflow-y-auto">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Laatste acties</h3>
+        <ul id="log-list" class="space-y-1 text-xs text-slate-300">
+            <li class="text-slate-500">Nog geen opdrachten uitgevoerd...</li>
+        </ul>
+    </footer>
+
+    <!-- JavaScript Logica -->
+    <script>
+        const startBtn = document.getElementById('start-btn');
+        const statusTitle = document.getElementById('status-title');
+        const transcriptEl = document.getElementById('transcript');
+        const pulseRing = document.getElementById('pulse-ring');
+        const micIconBg = document.getElementById('mic-icon-bg');
+        const logList = document.getElementById('log-list');
+
+        let recognition;
+        let isListening = false;
+        let waitingForCommand = false;
+
+        // Spraak terug laten praten
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'nl-NL';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Voeg toe aan logboek
+        function addLog(text) {
+            if (logList.children.length === 1 && logList.children[0].classList.contains('text-slate-500')) {
+                logList.innerHTML = '';
+            }
+            const li = document.createElement('li');
+            li.textContent = `> ${text}`;
+            logList.prepend(li);
+        }
+
+        // Spraakherkenning initialiseren
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Spraakherkenning wordt niet ondersteund door deze browser. Gebruik Google Chrome.");
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'nl-NL';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                isListening = true;
+                startBtn.classList.add('hidden');
+                pulseRing.classList.remove('hidden');
+                micIconBg.classList.add('border-cyan-400', 'bg-cyan-950/40');
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                const spokenText = (finalTranscript || interimTranscript).toLowerCase().trim();
+                if (spokenText) {
+                    transcriptEl.textContent = `"${spokenText}"`;
+                }
+
+                if (!waitingForCommand) {
+                    if (spokenText.includes('hey vox') || spokenText.includes('vox')) {
+                        waitingForCommand = true;
+                        statusTitle.textContent = "Luister naar commando...";
+                        speak("Ja?");
+                        addLog("Wake-word gedetecteerd");
+                    }
+                } else {
+                    processCommand(spokenText);
+                    waitingForCommand = false;
+                    statusTitle.textContent = 'Wachten op "Hey Vox"...';
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.warn("Spraakherkenning fout:", event.error);
+            };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log("Herstart herkenning mislukt:", e);
+                    }
+                }
+            };
+        }
+
+        // Verwerk spraakcommando's (inclusief Snapchat en Berichten)
+        function processCommand(command) {
+            addLog(`Commando: ${command}`);
+
+            if (command.includes('whatsapp')) {
+                speak("WhatsApp wordt geopend");
+                window.open('https://web.whatsapp.com', '_blank');
+            } else if (command.includes('snapchat')) {
+                speak("Snapchat wordt geopend");
+                window.open('https://www.snapchat.com', '_blank');
+            } else if (command.includes('berichten') || command.includes('sms')) {
+                speak("Berichten worden geopend");
+                window.open('https://messages.google.com', '_blank');
+            } else if (command.includes('youtube')) {
+                speak("YouTube wordt geopend");
+                window.open('https://www.youtube.com', '_blank');
+            } else if (command.includes('spotify')) {
+                speak("Spotify wordt geopend");
+                window.open('https://open.spotify.com', '_blank');
+            } else if (command.includes('google')) {
+                speak("Google wordt geopend");
+                window.open('https://www.google.com', '_blank');
+            } else {
+                speak("Ik begrijp dat commando niet.");
+                addLog("Onbekend commando");
+            }
+        }
+
+        // Start knop event
+        startBtn.addEventListener('click', () => {
+            initSpeechRecognition();
+            try {
+                recognition.start();
+                statusTitle.textContent = 'Wachten op "Hey Vox"...';
+                speak("VOX is gestart en luistert.");
+            } catch (e) {
+                console.log(e);
+            }
+        });
+
+        // Service Worker registreren voor PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registratie mislukt', err));
+            });
+        }
+    </script>
+</body>
+</html>
