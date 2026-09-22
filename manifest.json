@@ -1,0 +1,12 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Vox",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Vox",
+  "start_url": "/",
+  "theme_color": "#0f172a",
+  "lang": "nl"
+}
