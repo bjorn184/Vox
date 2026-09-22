@@ -149,31 +149,39 @@
             };
         }
 
-        // Verwerk spraakcommando's (inclusief Snapchat en Berichten)
+// Verwerk spraakcommando's (inclusief echte app intents)
         function processCommand(command) {
             addLog(`Commando: ${command}`);
 
             if (command.includes('whatsapp')) {
                 speak("WhatsApp wordt geopend");
-                window.open('https://web.whatsapp.com', '_blank');
+                window.location.href = 'whatsapp://send?phone=';
             } else if (command.includes('snapchat')) {
                 speak("Snapchat wordt geopend");
-                window.open('https://www.snapchat.com', '_blank');
-            } else if (command.includes('berichten') || command.includes('sms')) {
-                speak("Berichten worden geopend");
-                window.open('https://messages.google.com', '_blank');
-            } else if (command.includes('youtube')) {
-                speak("YouTube wordt geopend");
-                window.open('https://www.youtube.com', '_blank');
+                window.location.href = 'snapclient://'; // of de universele app link
+            } else if (command.includes('messenger') || command.includes('facebook messenger')) {
+                speak("Messenger wordt geopend");
+                window.location.href = 'fb-messenger://user-thread/';
+            } else if (command.includes('telegram')) {
+                speak("Telegram wordt geopend");
+                window.location.href = 'tg://';
             } else if (command.includes('spotify')) {
                 speak("Spotify wordt geopend");
-                window.open('https://open.spotify.com', '_blank');
+                window.location.href = 'spotify://';
+            } else if (command.includes('berichten') || command.includes('sms')) {
+                speak("Berichten worden geopend");
+                window.location.href = 'sms:';
+            } else if (command.includes('youtube')) {
+                speak("YouTube wordt geopend");
+                window.location.href = 'vnd.youtube://';
             } else if (command.includes('google')) {
                 speak("Google wordt geopend");
                 window.open('https://www.google.com', '_blank');
             } else {
                 speak("Ik begrijp dat commando niet.");
                 addLog("Onbekend commando");
+            }
+        }
             }
         }
 
